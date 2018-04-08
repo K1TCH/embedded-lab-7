@@ -131,6 +131,7 @@ void memCalc(){
   int bitOffset = intLog2(cacheBlockSize);
   int bitIndex = intLog2((cacheSize/cacheBlockSize)/setAssoc);
   int bitTag = addrLines - (bitOffset + bitIndex);
+  int overheadBits;
   int totalCacheSize = cacheSize + (bitTag + 2)*(cacheSize / cacheBlockSize)/8;
   printf("\nSimulator Output:\n");
   printf("Total address lines required = %d\n", addrLines);
@@ -140,6 +141,7 @@ void memCalc(){
   printf("Total cache size required = %d bytes\n", totalCacheSize);
 }
 
+//TODO: figure out how to keep track of cache
 void read(int memoryLoc){
 
 }
@@ -175,7 +177,7 @@ int parseFile(){
       }
       int referenceCounter = 0;
       while(fgets(newLine, 100, inputFile) != NULL){
-        printf("%s", newLine);
+        //printf("%s", newLine);
         if(newLine[0] == 'R' || newLine[0] == 'W'){
           if(!isspace(newLine[1])){
             printf("\n\nError reading file '%s'.  There must be a space after each 'R' or 'W' after the second line of the file.\n\n", fileName);
@@ -194,9 +196,15 @@ int parseFile(){
                 printf("\n\nError reading file '%s'.  %d is out of range.  Valid memory addresses range from 0 to %d \n\n", fileName, memLoc, mainMem-1);
                 return 0;
               }else{
+                if(referenceCounter == 0){
+                  memCalc();
+                  printHeader();
+                }
                 if(newLine[0] == 'R'){
+                  printReferenceLine(memLoc);
                   read(memLoc);
                 }else if(newLine[0] == 'W'){
+                  printReferenceLine(memLoc);
                   write(memLoc);
                 }
               }
@@ -212,9 +220,6 @@ int parseFile(){
         }
         referenceCounter++;
       }
-      for(int i = 0; i < sizeof(memRef)/sizeof(int); i++){
-        printf("%d", memRef[i]);
-      }
       return 1;
     }else{
       printf("\n\nError reading file '%s'.  The first line of the input file must be numeric.\n\n", fileName);
@@ -223,10 +228,51 @@ int parseFile(){
   }
 }
 
-void printMemoryTable(){
-
+void printReferenceLine(int mmAddr){
+  int mmBlkNum = mmAddr / cacheBlockSize;
+  int setNum = mmBlkNum % (cacheSize / cacheBlockSize / setAssoc);
+  char outcome[] = "hit";
+  if(setAssoc == 1){
+    printf("\n%7d%20d%16d%16d%16s",mmAddr,mmBlkNum,setNum,setNum,outcome);
+  }else{
+    int cmBlkNumLow = setNum*setAssoc;
+    int cmBlkNumHigh = cmBlkNumLow + setAssoc - 1;
+    printf("\n%7d%20d%16d%16d - %d%16s",mmAddr,mmBlkNum,setNum,cmBlkNumLow,cmBlkNumHigh,outcome);
+  }
 }
+
+void printHeader(){
+  printf("\nmain memory address\tmm blk #\tcm set #\tcm blk #\thit/miss\n");
+  for(int i = 0; i < 80; i++){
+    printf("%c",196);
+  }
+}
+
+void printHitRates(){
+//TODO
+}
+
+void printFinalCache(){
+//TODO
+}
+
+void printProgramTitle(){
+  printf("\t\t");
+  for(int i = 0; i < 70; i++){
+    printf("%c",176);
+  }
+  printf("\n\t\t%c%c%67c%c\n\t\t%c%c%51s%16c%c\n\t\t%c%c%67c%c\n\t\t",176,176,176,176,176,176,"M E M O R Y   S I M U L A T O R   1.0", 176,176,176,176,176,176);
+  //TODO: Make width a variable. Add Class, Lab, Name?
+  for(int i = 0; i < 70; i++){
+    printf("%c",176);
+  }
+  printf("\n\n");
+}
+
 int main(){
+
+  printProgramTitle();
+
   for( ; ; ){
 
     specifyMemorySpecs();
@@ -238,9 +284,8 @@ int main(){
       }
     }
 
-    memCalc();
-
-    //printMemoryTable();
+    printHitRates();
+    printFinalCache();
 
     char cont[100];
     for( ; ; ){
